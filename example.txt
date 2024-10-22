@@ -1,0 +1,47 @@
+const Database = require('./utils/database'); // Importar la clase Database
+
+// Crear una instancia de la base de datos
+const db = new Database();
+
+// Llamar al método para crear la base de datos con un nombre específico
+const nombreBaseDatos = 'Deportes';
+db.createDB(nombreBaseDatos)
+  .then(mensaje => { console.log(mensaje); })
+  .catch(error => { console.error(error); });
+
+// Crear una nueva tabla 'usuarios'
+db.table('usuarios').create(['nombre', 'email', 'rol'])
+  .then(mensaje => { console.log(mensaje); })
+  .catch(error => { console.error(error); });
+
+// Insertar un nuevo registro en la tabla 'usuarios'
+db.table('usuarios').insert({ nombre: 'Pepe', email: 'pep@correo.com', rol: 'Admin' })
+  .then(mensaje => { console.log(mensaje); })
+  .catch(error => { console.error(error); });
+
+// Agregar un nuevo campo a la tabla  
+db.table('usuarios').addFieldToTable('telefono')
+  .then(mensaje => console.log(mensaje))
+  .catch(error => console.error(error));
+
+// Eliminar un campo de la tabla
+db.table('usuarios').removeFieldFromTable('email')
+  .then(mensaje => console.log(mensaje))
+  .catch(error => console.error(error));
+
+// Editar valores de uno o mas campos filtrando condiciones
+db.table('usuarios').where({ rol: 'Admin', uid: 1 }).update({ nombre: 'nuevo valor' })
+  .then(mensaje => console.log(mensaje))
+  .catch(error => console.error(error));
+
+// Eliminar elemento por condiciones (tambien se puede sin ellas)
+db.table('usuarios').where({ rol: 'Admin', uid: 2 }).delete()
+    .then(mensaje => console.log(mensaje))
+    .catch(error => console.error(error));
+
+// Filtrar y ordenar
+const usuariosFiltradosOrdenados = db.table('usuarios')
+  .filter(['rol', 'Admin']) // Filtrar por rol 'Admin'
+  .orderBy('nombre', 'asc'); // Ordenar por nombre en orden ascendente
+
+console.log(usuariosFiltradosOrdenados);
