@@ -1,47 +1,48 @@
-const Database = require('./utils/database'); // Importar la clase Database
-
-// Crear una instancia de la base de datos
+const Database = require('./utils/database');
 const db = new Database();
 
-// Llamar al método para crear la base de datos con un nombre específico
-const nombreBaseDatos = 'Deportes';
-db.createDB(nombreBaseDatos)
-  .then(mensaje => { console.log(mensaje); })
-  .catch(error => { console.error(error); });
+async function main() {
+    // Crear base de datos (si no existe)
+    //await db.createDB('miBase');
 
-// Crear una nueva tabla 'usuarios'
-db.table('usuarios').create(['nombre', 'email', 'rol'])
-  .then(mensaje => { console.log(mensaje); })
-  .catch(error => { console.error(error); });
+    // Cargar la base de datos para trabajar con ella
+    await db.load('miBase');
+    
+    // Crear una tabla dentro de la base de datos
+    //db.createTable('usuarios', ['nombre', 'email']);
+    
+    console.log('Todos los usuarios:', db.table('usuarios').get());
+    console.log('Primer usuario:', db.table('usuarios').first());
+    console.log('Usuarios con edad a 22:', db.table('usuarios').where('edad', 22).get());
+    console.log('Usuarios ordenados por edad descendente:', db.table('usuarios').orderBy('edad', 'desc').get());
+    console.log('Primer usuario en la lista ordenada por edad:', db.table('usuarios').orderBy('edad', 'asc').first());
+    console.log('Usuarios limitados a 2 registros:', db.table('usuarios').limit(2).get());
+    console.log('Usuarios con nombre en lista ["Juan", "Ana"]:', db.table('usuarios').whereIn('nombre', ['Juan', 'Ana']).get());
+    console.log('Total de usuarios:', db.table('usuarios').count());
+    console.log('Usuarios con edad entre 20 y 30:', db.table('usuarios').whereBetween('edad', 20, 30).get());
+    console.log('Usuarios solo con nombre y edad:', db.table('usuarios').select('nombre', 'edad').get());
+    console.log('Buscar usuario con uid 2:', db.table('usuarios').find(2));
 
-// Insertar un nuevo registro en la tabla 'usuarios'
-db.table('usuarios').insert({ nombre: 'Pepe', email: 'pep@correo.com', rol: 'Admin' })
-  .then(mensaje => { console.log(mensaje); })
-  .catch(error => { console.error(error); });
+    // Insertar un nuevo usuario
+    /*const nuevoUsuario = await db.table('usuarios').insert({
+        nombre: 'Maria',
+        email: 'maria@example.com',
+        edad: 30
+    });
 
-// Agregar un nuevo campo a la tabla  
-db.table('usuarios').addFieldToTable('telefono')
-  .then(mensaje => console.log(mensaje))
-  .catch(error => console.error(error));
+    console.log('Nuevo usuario insertado:', nuevoUsuario);*/
 
-// Eliminar un campo de la tabla
-db.table('usuarios').removeFieldFromTable('email')
-  .then(mensaje => console.log(mensaje))
-  .catch(error => console.error(error));
+    // Actualizar registros
+    //db.table('usuarios').where('uid', 7).update({ nombre: 'CARACOLA' });
 
-// Editar valores de uno o mas campos filtrando condiciones
-db.table('usuarios').where({ rol: 'Admin', uid: 1 }).update({ nombre: 'nuevo valor' })
-  .then(mensaje => console.log(mensaje))
-  .catch(error => console.error(error));
+    // Eliminar registros
+    //db.table('usuarios').where('uid', 7).delete();
 
-// Eliminar elemento por condiciones (tambien se puede sin ellas)
-db.table('usuarios').where({ rol: 'Admin', uid: 2 }).delete()
-    .then(mensaje => console.log(mensaje))
-    .catch(error => console.error(error));
+    // Vaciar tabla
+    //db.table('pedidos').truncate();
 
-// Filtrar y ordenar
-const usuariosFiltradosOrdenados = db.table('usuarios')
-  .filter(['rol', 'Admin']) // Filtrar por rol 'Admin'
-  .orderBy('nombre', 'asc'); // Ordenar por nombre en orden ascendente
+    // Método join(): Realiza la unión entre las tablas usuarios y pedidos, buscando la coincidencia entre uid (usuarios) y usuario_id (pedidos).
+    console.log('Left Join de tablas:', db.table('usuarios').join('pedidos', 'uid', 'usuario_id').get());
+}
 
-console.log(usuariosFiltradosOrdenados);
+main();

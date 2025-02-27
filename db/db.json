@@ -1,4 +1,125 @@
 {
   "nombreDB": "Deportes",
-  "tablas": []
+  "tablas": [
+    {
+      "usuarios": {
+        "cabecera": [
+          "uid",
+          "nombre",
+          "email",
+          "rol"
+        ],
+        "datos": [
+          {
+            "uid": 1,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 2,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 3,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 4,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 5,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 6,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 7,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 8,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 9,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 10,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 11,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 12,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 13,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 14,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 15,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 16,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 17,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          },
+          {
+            "uid": 18,
+            "nombre": "Pepe",
+            "email": "pep@correo.com",
+            "rol": "Admin"
+          }
+        ]
+      }
+    }
+  ]
 }

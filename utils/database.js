@@ -1,301 +1,95 @@
-const fs = require('fs');
+import fs from 'fs';
+import path from 'path';
+import Query from './query'; // Importa la clase Query
 
 class Database {
-    constructor() {
-        this.filePath = './db/db.json';
-        this.data = null;
-        this.selectedTableName = null; // Guardar el nombre de la tabla seleccionada
-        this.whereConditions = {}; // Almacenar condiciones de filtrado
+    constructor(directory = 'db') {
+        this.directory = directory;
+        this.dbName = null; // Base de datos cargada
+        this.dbPath = null; // Ruta de la base de datos cargada
 
-        // Cargar los datos desde el archivo JSON al iniciar la clase
-        this.load();
-    }
-
-    // Método para cargar datos desde el archivo
-    load() {
-        try {
-            const data = fs.readFileSync(this.filePath, 'utf8');
-            this.data = JSON.parse(data);
-        } catch (error) {
-            console.error(`Error al cargar la base de datos: ${error}`);
-            this.data = { nombreDB: '', tablas: [] }; // Estructura vacía en caso de error
+        if (!fs.existsSync(this.directory)) {
+            fs.mkdirSync(this.directory, { recursive: true });
         }
     }
 
-    // Método para guardar los datos en el archivo
-    save() {
-        try {
-            fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2));
-        } catch (error) {
-            console.error(`Error al guardar la base de datos: ${error}`);
-        }
-    }
-
-    // Método para crear la DB si no existe
-    createDB(nombreDB) {
+    // Método para crear un archivo de base de datos vacío (JSON)
+    createDB(filename) {
         return new Promise((resolve, reject) => {
-            if (!fs.existsSync(this.filePath)) {
-                const dbData = {
-                    nombreDB: nombreDB,
-                    tablas: []
-                };
-                this.data = dbData;
-                this.save();
-                return resolve(`Archivo db.json creado con éxito con nombreDB: ${nombreDB}`);
-            } else {
-                return reject(`El archivo db.json ya existe.`);
-            }
-        });
-    }
+            this.dbName = filename;
+            this.dbPath = path.join(this.directory, `${filename}.json`);
 
-    // Método para seleccionar una tabla
-    table(nombreTabla) {
-        this.selectedTableName = nombreTabla; // Guardar el nombre de la tabla seleccionada
-        this.whereConditions = {}; // Reiniciar las condiciones de filtrado
-        return this; // Permitir encadenamiento
-    }
-
-    // Método para crear una nueva tabla
-    create(campos) {
-        return new Promise((resolve, reject) => {
-            if (!this.selectedTableName) {
-                return reject("No hay tabla seleccionada para crear.");
+            if (fs.existsSync(this.dbPath)) {
+                return resolve(`La base de datos ${filename} ya existe.`);
             }
 
-            // Verificar si la tabla ya existe
-            const tablaExistente = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
-            if (tablaExistente) {
-                return resolve(`La tabla ${this.selectedTableName} ya existe.`);
-            }
+            // Crear un archivo JSON vacío con la estructura inicial
+            const initialData = { tablas: [] };
 
-            // Asegurar que 'uid' esté en la cabecera
-            const cabeceraConUid = ['uid', ...campos];
-
-            // Crear la nueva tabla con los campos proporcionados
-            const nuevaTabla = {
-                [this.selectedTableName]: {
-                    cabecera: cabeceraConUid,
-                    datos: [] // Inicialmente vacío, se pueden agregar registros después
+            fs.writeFile(this.dbPath, JSON.stringify(initialData, null, 2), 'utf8', (err) => {
+                if (err) {
+                    return reject(`Error al crear la base de datos: ${err}`);
                 }
-            };
-
-            this.data.tablas.push(nuevaTabla); // Agregar la nueva tabla
-            this.save(); // Guardar cambios en el archivo
-
-            resolve(`Tabla ${this.selectedTableName} creada con éxito.`);
+                resolve(`La base de datos ${filename} ha sido creada exitosamente.`);
+            });
         });
     }
 
-    // Método para insertar datos en la tabla seleccionada
-    insert(registro) {
+    // Método para cargar los datos de una base de datos existente
+    load(filename) {
         return new Promise((resolve, reject) => {
-            if (!this.selectedTableName) {
-                return reject('No hay tabla seleccionada para insertar.');
+            this.dbName = filename;
+            this.dbPath = path.join(this.directory, `${filename}.json`);
+
+            if (!fs.existsSync(this.dbPath)) {
+                return reject(`La base de datos ${filename} no existe.`);
             }
 
-            // Buscar la tabla seleccionada
-            const tabla = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
+            // Leer el archivo JSON y cargar su contenido
+            fs.readFile(this.dbPath, 'utf8', (err, data) => {
+                if (err) {
+                    return reject(`Error al leer la base de datos: ${err}`);
+                }
+                resolve(JSON.parse(data)); // Cargar datos en formato JSON
+            });
+        });
+    }
 
-            if (!tabla) {
-                return reject(`La tabla ${this.selectedTableName} no existe.`);
+    // Método para crear una tabla dentro de la base de datos cargada
+    createTable(tableName, structure = []) {
+        return new Promise((resolve, reject) => {
+            if (!this.dbName) return reject('No hay una base de datos cargada. Usa load(nombreDB) primero.');
+    
+            let dbContent = JSON.parse(fs.readFileSync(this.dbPath, 'utf8') || '{}');
+    
+            if (!dbContent.tablas) {
+                dbContent.tablas = [];
             }
-
-            const tablaDatos = tabla[this.selectedTableName].datos;
-
-            // Generar el nuevo uid
-            const maxUid = tablaDatos.length > 0 ? Math.max(...tablaDatos.map(item => item.uid)) : 0;
-            const nuevoUid = maxUid + 1; // Autoincrementar el uid
-
-            // Completar los campos faltantes con null
-            const nuevoRegistro = { uid: nuevoUid }; // Agregar el nuevo uid
-            tabla[this.selectedTableName].cabecera.forEach(campo => {
-                if (campo !== 'uid') { // No sobrescribir el uid
-                    nuevoRegistro[campo] = registro[campo] !== undefined ? registro[campo] : null;
+    
+            const tableExists = dbContent.tablas.some(tabla => tabla[tableName]);
+            if (tableExists) {
+                return resolve(`La tabla ${tableName} ya existe.`);
+            }
+    
+            const tableStructure = structure.includes('uid') ? structure : ['uid', ...structure];
+    
+            dbContent.tablas.push({
+                [tableName]: {
+                    cabecera: tableStructure,
+                    datos: []
                 }
             });
-
-            // Insertar el nuevo registro
-            tablaDatos.push(nuevoRegistro);
-            this.save(); // Guardar cambios en el archivo
-
-            resolve(`Registro insertado en la tabla ${this.selectedTableName} con éxito.`);
+    
+            fs.writeFileSync(this.dbPath, JSON.stringify(dbContent, null, 2), 'utf8');
+            resolve(`Tabla ${tableName} creada en la base de datos ${this.dbName}.`);
         });
-    }
+    } 
 
-    // Método para agregar un nuevo campo a la cabecera y actualizar registros
-    addFieldToTable(nuevoCampo) {
-        return new Promise((resolve, reject) => {
-            const tabla = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
-            if (!tabla) {
-                return reject(`La tabla ${this.selectedTableName} no existe.`);
-            }
-
-            // Verificar si el campo ya existe en la cabecera
-            if (tabla[this.selectedTableName].cabecera.includes(nuevoCampo)) {
-                return reject(`El campo ${nuevoCampo} ya existe en la cabecera de la tabla ${this.selectedTableName}.`);
-            }
-
-            // Agregar el nuevo campo a la cabecera
-            tabla[this.selectedTableName].cabecera.push(nuevoCampo);
-
-            // Actualizar cada registro para incluir el nuevo campo con valor null
-            tabla[this.selectedTableName].datos.forEach(registro => {
-                registro[nuevoCampo] = null;
-            });
-
-            this.save(); // Guardar cambios en el archivo
-
-            resolve(`Campo ${nuevoCampo} agregado a la cabecera de la tabla ${this.selectedTableName} y actualizado en los registros.`);
-        });
-    }
-
-    // Método para eliminar un campo de la cabecera y de los datos de la tabla
-    removeFieldFromTable(campoAEliminar) {
-        return new Promise((resolve, reject) => {
-            const tabla = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
-            if (!tabla) {
-                return reject(`La tabla ${this.selectedTableName} no existe.`);
-            }
-
-            // Verificar si el campo existe en la cabecera
-            const index = tabla[this.selectedTableName].cabecera.indexOf(campoAEliminar);
-            if (index === -1) {
-                return reject(`El campo ${campoAEliminar} no existe en la cabecera de la tabla ${this.selectedTableName}.`);
-            }
-
-            // Eliminar el campo de la cabecera
-            tabla[this.selectedTableName].cabecera.splice(index, 1);
-
-            // Eliminar el campo de cada registro
-            tabla[this.selectedTableName].datos.forEach(registro => {
-                delete registro[campoAEliminar];
-            });
-
-            this.save(); // Guardar cambios en el archivo
-
-            resolve(`Campo ${campoAEliminar} eliminado de la cabecera y de los datos de la tabla ${this.selectedTableName}.`);
-        });
-    }
-
-    // Método para actualizar campos en los registros de la tabla
-    update(nuevosDatos) {
-        return new Promise((resolve, reject) => {
-            if (!this.selectedTableName) {
-                return reject('No hay tabla seleccionada para actualizar.');
-            }
-
-            // Buscar la tabla seleccionada
-            const tabla = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
-
-            if (!tabla) {
-                return reject(`La tabla ${this.selectedTableName} no existe.`);
-            }
-
-            const tablaDatos = tabla[this.selectedTableName].datos;
-
-            // Filtrar los registros que coincidan con las condiciones de "where"
-            const registrosFiltrados = tablaDatos.filter(registro => {
-                return Object.entries(this.whereConditions).every(([campo, valor]) => {
-                    return registro[campo] === valor;
-                });
-            });
-
-            // Actualizar los registros filtrados con los nuevos datos
-            registrosFiltrados.forEach(registro => {
-                Object.entries(nuevosDatos).forEach(([campo, valor]) => {
-                    registro[campo] = valor; // Actualizar el campo
-                });
-            });
-
-            this.save(); // Guardar cambios en el archivo
-
-            if (registrosFiltrados.length > 0) {
-                resolve(`${registrosFiltrados.length} registros actualizados en la tabla ${this.selectedTableName} con éxito.`);
-            } else {
-                resolve('No se encontraron registros que actualizar.');
-            }
-        });
-    }
-
-    // Método para eliminar registros de la tabla según condiciones
-    delete() {
-        return new Promise((resolve, reject) => {
-            if (!this.selectedTableName) {
-                return reject('No hay tabla seleccionada para eliminar.');
-            }
-
-            // Buscar la tabla seleccionada
-            const tabla = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
-
-            if (!tabla) {
-                return reject(`La tabla ${this.selectedTableName} no existe.`);
-            }
-
-            const tablaDatos = tabla[this.selectedTableName].datos;
-
-            // Filtrar los registros que coincidan con las condiciones de "where"
-            const registrosFiltrados = tablaDatos.filter(registro => {
-                return Object.entries(this.whereConditions).every(([campo, valor]) => {
-                    return registro[campo] === valor;
-                });
-            });
-
-            // Eliminar los registros filtrados de la tabla
-            const registrosRestantes = tablaDatos.filter(registro => {
-                return !registrosFiltrados.includes(registro);
-            });
-
-            tabla[this.selectedTableName].datos = registrosRestantes; // Actualizar datos
-
-            this.save(); // Guardar cambios en el archivo
-
-            if (registrosFiltrados.length > 0) {
-                resolve(`${registrosFiltrados.length} registros eliminados de la tabla ${this.selectedTableName} con éxito.`);
-            } else {
-                resolve('No se encontraron registros que eliminar.');
-            }
-        }).then(result => {
-            this.whereConditions = {}; // Resetear condiciones después de la eliminación
-            return result;
-        });
-    }
-
-
-    // Método para establecer las condiciones de filtrado (where)
-    where(conditions) {
-        this.whereConditions = conditions; // Guardar condiciones para el update
-        return this; // Permitir encadenamiento
-    }
-
-    // Método para obtener y filtrar los registros de la tabla
-    filter(...conditions) {
-        const tabla = this.data.tablas.find(tabla => tabla[this.selectedTableName]);
-        if (!tabla) {
-            throw new Error(`La tabla ${this.selectedTableName} no existe.`);
-        }
-
-        const registros = tabla[this.selectedTableName].datos;
-
-        // Filtrar registros según las condiciones
-        const resultadosFiltrados = registros.filter(registro => {
-            return conditions.every(condition => {
-                const [campo, valor] = condition;
-                return registro[campo] === valor;
-            });
-        });
-
-        return {
-            resultados: resultadosFiltrados,
-            // Método para ordenar los resultados
-            orderBy: (campo, orden = 'asc') => {
-                return resultadosFiltrados.sort((a, b) => {
-                    if (a[campo] < b[campo]) return orden === 'asc' ? -1 : 1;
-                    if (a[campo] > b[campo]) return orden === 'asc' ? 1 : -1;
-                    return 0;
-                });
-            }
-        };
-    }
+    // Metodo para seleccionar datos en una tabla
+    table(tableName) {
+        if (!this.dbName) throw new Error('No hay una base de datos cargada. Usa load(nombreDB) primero.');
+        return new Query(tableName, this);
+    }    
 }
 
-module.exports = Database;
+export default Database; 
